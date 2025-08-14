@@ -1,0 +1,148 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+services:
+  namenode:
+    image: apache/hadoop:3.4.1
+    container_name: hadoop-namenode
+    hostname: namenode
+    command: ["hdfs", "namenode"]
+    ports:
+      - 9870:9870
+    env_file:
+      - ./config
+    environment:
+      ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+    volumes:
+      - hadoop-namenode:/hadoop/dfs/name
+    networks:
+      - hadoop-net
+  
+  datanode:
+    image: apache/hadoop:3.4.1
+    container_name: hadoop-datanode
+    command: ["hdfs", "datanode"]
+    env_file:
+      - ./config
+    volumes:
+      - hadoop-datanode:/hadoop/dfs/data
+    depends_on:
+      - namenode
+    networks:
+      - hadoop-net
+  
+  resourcemanager:
+    container_name: hadoop-resourcemanager
+    image: apache/hadoop:3.4.1
+    hostname: resourcemanager
+    command: ["yarn", "resourcemanager"]
+    ports:
+      - 8088:8088
+    env_file:
+      - ./config
+    networks:
+      - hadoop-net
+    
+  nodemanager:
+    container_name: hadoop-nodemanager
+    image: apache/hadoop:3.4.1
+    command: ["yarn", "nodemanager"]
+    env_file:
+      - ./config
+    networks:
+      - hadoop-net
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-hive
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: metastore
+      MYSQL_USER: hive
+      MYSQL_PASSWORD: hive
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # - ./hive/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - hadoop-net
+  
+  hive-metastore:
+    image: apache/hive:4.1.0
+    container_name: hive-metastore
+    hostname: hive-metastore
+    ports:
+      - "9083:9083"
+    environment:
+      HIVE_METASTORE_DB_TYPE: mysql
+      HIVE_METASTORE_URI: thrift://hive-metastore:9083
+      SERVICE_NAME: metastore
+      DB_ROOT_USER: root
+      DB_ROOT_PASSWORD: root
+      DB_USER: hive
+      DB_PASSWORD: hive
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: metastore
+    depends_on:
+      - mysql
+      - namenode
+      - datanode
+    env_file:
+      - ./config
+    networks:
+      - hadoop-net
+
+  hive-server:
+    container_name: hive-server
+    image: apache/hive:4.1.0
+    hostname: hive-server
+    ports:
+      - "10000:10000"
+      - "10002:10002"
+    environment:
+      SERVICE_NAME: hiveserver2
+      HIVE_METASTORE_URI: thrift://hive-metastore:9083
+    # volumes:
+    #   - ./hive/conf/hive-site.xml:/opt/hive/conf/hive-site.xml
+    depends_on:
+      - hive-metastore
+    networks:
+      - hadoop-net
+
+# spark:
+#   container_name: spark
+#   image: apache/spark:4.0.0
+#   hostname: spark
+#   depends_on:
+#     - hive-metastore
+#     - hive-server
+#   environment:
+#     SPARK_MASTER: local
+#     HIVE_METASTORE_URI: thrift://hive-metastore:9083
+#   networks:
+#     - hadoop-net
+#   entrypoint: [ "/bin/bash", "-c", "while true; do sleep 1000; done" ]
+
+
+volumes:
+  hadoop-namenode:
+  hadoop-datanode:
+  mysql_data:
+
+networks:
+  hadoop-net:
