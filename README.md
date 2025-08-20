@@ -20,6 +20,8 @@
 Please use the included docker-compose.yaml to test it:
 
 ``` bash
-docker-compose build
-docker-compose up -d
+docker compose build
+docker compose up -d
 ```
+
+> 请阅读docs文件夹

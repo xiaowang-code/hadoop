@@ -13,60 +13,76 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+version: '3.8'
+
+x-hadoop-common: &hadoop-common
+  image: apache/hadoop:3.4.1
+  env_file:
+    - ./config
+  networks:
+    - hadoop-net
+  ulimits:
+    nofile:
+      soft: 65536
+      hard: 65536
+    nproc:
+      soft: 65536
+      hard: 65536
+
 services:
   namenode:
-    image: apache/hadoop:3.4.1
+    <<: *hadoop-common
     container_name: hadoop-namenode
     hostname: namenode
     command: ["hdfs", "namenode"]
     ports:
       - 9870:9870
-    env_file:
-      - ./config
     environment:
-      ENSURE_NAMENODE_DIR: "/tmp/hadoop-hadoop/dfs/name"
+      ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
     volumes:
       - hadoop-namenode:/hadoop/dfs/name
-    networks:
-      - hadoop-net
   
   datanode:
-    image: apache/hadoop:3.4.1
+    <<: *hadoop-common
     container_name: hadoop-datanode
     command: ["hdfs", "datanode"]
-    env_file:
-      - ./config
     volumes:
       - hadoop-datanode:/hadoop/dfs/data
     depends_on:
       - namenode
-    networks:
-      - hadoop-net
   
   resourcemanager:
+    <<: *hadoop-common
     container_name: hadoop-resourcemanager
-    image: apache/hadoop:3.4.1
     hostname: resourcemanager
     command: ["yarn", "resourcemanager"]
     ports:
       - 8088:8088
-    env_file:
-      - ./config
-    networks:
-      - hadoop-net
+    depends_on:
+      - namenode
+      - datanode
     
   nodemanager:
+    <<: *hadoop-common
     container_name: hadoop-nodemanager
-    image: apache/hadoop:3.4.1
     command: ["yarn", "nodemanager"]
-    env_file:
-      - ./config
-    networks:
-      - hadoop-net
+    depends_on:
+      - resourcemanager
+
+  historyserver:
+    <<: *hadoop-common
+    container_name: hadoop-historyserver
+    command: ["mapred", "historyserver"]
+    ports:
+      - 19888:19888
+    depends_on:
+      - namenode
+      - datanode
 
   mysql:
     image: mysql:8.0
     container_name: hive-mysql
+    hostname: mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -95,15 +111,12 @@ services:
       SERVICE_NAME: metastore
       DB_DRIVER: mysql
       SERVICE_OPTS: >-
-        -Dhive.server2.enable.doAs=true
-        -Dhive.security.authorization.enabled=true
-        -Dhive.users.in.admin.role=hive,admin
+        -Dhive.metastore.warehouse.dir=hdfs://namenode:8020/user/hive/warehouse
         -Djavax.jdo.option.ConnectionDriverName=com.mysql.cj.jdbc.Driver
         -Djavax.jdo.option.ConnectionURL=jdbc:mysql://mysql:3306/metastore?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
         -Djavax.jdo.option.ConnectionUserName=hive
         -Djavax.jdo.option.ConnectionPassword=hive
     volumes:
-      - warehouse:/opt/hive/data/warehouse
       - ./jdbc-drivers/mysql-connector-j-8.0.33.jar:/opt/hive/lib/mysql-connector-java-8.0.33.jar:ro
     networks:
       - hadoop-net
@@ -119,38 +132,40 @@ services:
       - "10002:10002"
     environment:
       SERVICE_NAME: hiveserver2
-      IS_RESUME: true
+      IS_RESUME: false
       SERVICE_OPTS: >-
         -Dhive.metastore.uris=thrift://hive-metastore:9083
-    volumes:
-      - warehouse:/opt/hive/data/warehouse
-      - ./jdbc-drivers/mysql-connector-j-8.0.33.jar:/opt/hive/lib/mysql-connector-java-8.0.33.jar:ro
-    # - ./hive/conf/hive-site.xml:/opt/hive/conf/hive-site.xml
+        -Dhive.server2.enable.doAs=true
+        -Dhive.security.authorization.enabled=true
+        -Dhive.users.in.admin.role=hive,admin
+        -Dhive.metastore.warehouse.dir=hdfs://namenode:8020/user/hive/warehouse
+        -Dhive.server2.webui.host=0.0.0.0
+        -Dhive.server2.webui.port=10002
     networks:
       - hadoop-net
 
-# spark:
-#   container_name: spark
-#   image: apache/spark:3.5.6
-#   hostname: spark
-#   depends_on:
-#     - hive-metastore
-#     - hive-server
-#   environment:
-#     SPARK_MASTER: local
-#     HIVE_METASTORE_URI: thrift://hive-metastore:9083
-#   ports:
-#     - "4040:4040"
-#   networks:
-#     - hadoop-net
-#   entrypoint: [ "/bin/bash", "-c", "while true; do sleep 1000; done" ]
+  spark:
+    image: apache/spark:3.5.6
+    container_name: spark
+    hostname: spark
+    depends_on:
+      - hive-server
+      - hive-metastore
+    environment:
+      SPARK_MASTER: local
+      HIVE_METASTORE_URI: thrift://hive-metastore:9083
+    ports:
+      - "4040:4040"
+    networks:
+      - hadoop-net
+    entrypoint: [ "/bin/bash", "-c", "while true; do sleep 1000; done" ]
 
 
 volumes:
   hadoop-namenode:
   hadoop-datanode:
   mysql_data:
-  warehouse:
 
 networks:
   hadoop-net:
+    driver: bridge

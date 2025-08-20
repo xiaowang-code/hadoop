@@ -1,0 +1,2 @@
+{"name":"zhizhi","friends":["binbin","wuwu"],"students":{"xiaozong":18,"xiaohong":15},"address":{"street":"huimingqu","city":"huhehaote","postal_code":111111}}
+{"name":"zhizhi","friends":["binbin","wuwu"],"students":{"xiaozong":18,"xiaohong":15},"address":{"street":"huimingqu","city":"huhehaote","postal_code":111111}}

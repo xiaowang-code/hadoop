@@ -23,6 +23,8 @@ RUN sudo rm -rf /opt/hadoop \
     && rm -rf /opt/hadoop/share/doc
 
 WORKDIR /opt/hadoop
+# RUN mkdir -p /data/hadoop/dfs/name && \
+#     sudo chown -R hadoop:hadoop /data/hadoop/dfs/name
 ADD log4j.properties /opt/hadoop/etc/hadoop/log4j.properties
 RUN sudo chown -R hadoop:users /opt/hadoop/etc/hadoop/*
 ENV HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
