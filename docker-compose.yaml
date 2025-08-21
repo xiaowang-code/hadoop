@@ -139,8 +139,6 @@ services:
         -Dhive.security.authorization.enabled=true
         -Dhive.users.in.admin.role=hive,admin
         -Dhive.metastore.warehouse.dir=hdfs://namenode:8020/user/hive/warehouse
-        -Dhive.server2.webui.host=0.0.0.0
-        -Dhive.server2.webui.port=10002
     networks:
       - hadoop-net
 
