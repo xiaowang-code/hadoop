@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-version: '3.8'
-
 x-hadoop-common: &hadoop-common
   image: apache/hadoop:3.4.1
   env_file:
@@ -111,7 +109,9 @@ services:
       SERVICE_NAME: metastore
       DB_DRIVER: mysql
       SERVICE_OPTS: >-
+        -Dfs.defaultFS=hdfs://namenode:8020
         -Dhive.metastore.warehouse.dir=hdfs://namenode:8020/user/hive/warehouse
+        -Dhive.users.in.admin.role=hive,admin
         -Djavax.jdo.option.ConnectionDriverName=com.mysql.cj.jdbc.Driver
         -Djavax.jdo.option.ConnectionURL=jdbc:mysql://mysql:3306/metastore?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
         -Djavax.jdo.option.ConnectionUserName=hive
@@ -134,11 +134,12 @@ services:
       SERVICE_NAME: hiveserver2
       IS_RESUME: false
       SERVICE_OPTS: >-
+        -Dfs.defaultFS=hdfs://namenode:8020
         -Dhive.metastore.uris=thrift://hive-metastore:9083
-        -Dhive.server2.enable.doAs=true
-        -Dhive.security.authorization.enabled=true
-        -Dhive.users.in.admin.role=hive,admin
         -Dhive.metastore.warehouse.dir=hdfs://namenode:8020/user/hive/warehouse
+        -Dhive.security.authorization.enabled=true
+        -Dhive.server2.enable.doAs=true
+        -Dhive.users.in.admin.role=hive,admin
     networks:
       - hadoop-net
 
