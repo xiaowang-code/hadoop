@@ -24,8 +24,8 @@ CORE-SITE.XML_hadoop.proxyuser.wang.users=*
 
 HDFS-SITE.XML_dfs.namenode.rpc-address=namenode:8020
 HDFS-SITE.XML_dfs.replication=3 
-# HDFS-SITE.XML_dfs.namenode.name.dir=file:///data/hadoop/dfs/name
-# HDFS-SITE.XML_dfs.datanode.data.dir=file:///data/hadoop/dfs/data
+HDFS-SITE.XML_dfs.namenode.name.dir=file:///data/dfs/namenode
+HDFS-SITE.XML_dfs.datanode.data.dir=file:///data/dfs/datanode
 MAPRED-SITE.XML_mapreduce.framework.name=yarn
 MAPRED-SITE.XML_yarn.app.mapreduce.am.env=HADOOP_MAPRED_HOME=$HADOOP_HOME
 MAPRED-SITE.XML_mapreduce.map.env=HADOOP_MAPRED_HOME=$HADOOP_HOME

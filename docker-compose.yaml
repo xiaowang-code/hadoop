@@ -38,14 +38,14 @@ services:
     environment:
       ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
     volumes:
-      - hadoop-namenode:/hadoop/dfs/name
+      - hadoop-namenode:/data
   
   datanode:
     <<: *hadoop-common
     container_name: hadoop-datanode
     command: ["hdfs", "datanode"]
     volumes:
-      - hadoop-datanode:/hadoop/dfs/data
+      - hadoop-datanode:/data
     depends_on:
       - namenode
   
@@ -56,6 +56,8 @@ services:
     command: ["yarn", "resourcemanager"]
     ports:
       - 8088:8088
+    volumes:
+      - hadoop-resourcemanager:/data
     depends_on:
       - namenode
       - datanode
@@ -64,6 +66,8 @@ services:
     <<: *hadoop-common
     container_name: hadoop-nodemanager
     command: ["yarn", "nodemanager"]
+    volumes:
+      - hadoop-nodemanager:/data
     depends_on:
       - resourcemanager
 
@@ -73,6 +77,8 @@ services:
     command: ["mapred", "historyserver"]
     ports:
       - 19888:19888
+    volumes:
+      - hadoop-historyserver:/data
     depends_on:
       - namenode
       - datanode
@@ -163,6 +169,9 @@ services:
 volumes:
   hadoop-namenode:
   hadoop-datanode:
+  hadoop-nodemanager:
+  hadoop-historyserver:
+  hadoop-resourcemanager:
   mysql_data:
 
 networks:
